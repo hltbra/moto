@@ -4,7 +4,6 @@ import sure  # noqa
 
 from moto import mock_ec2
 
-
 @mock_ec2
 def test_vpcs():
     conn = boto.connect_vpc('the_key', 'the_secret')

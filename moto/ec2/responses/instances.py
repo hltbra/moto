@@ -2,7 +2,6 @@ from jinja2 import Template
 
 from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores
-from moto.ec2.models import ec2_backend
 from moto.ec2.utils import instance_ids_from_querystring, filters_from_querystring, filter_reservations
 from moto.ec2.exceptions import InvalidIdError
 
@@ -12,12 +11,12 @@ class InstanceResponse(BaseResponse):
         instance_ids = instance_ids_from_querystring(self.querystring)
         if instance_ids:
             try:
-                reservations = ec2_backend.get_reservations_by_instance_ids(instance_ids)
+                reservations = self.ec2_backend.get_reservations_by_instance_ids(instance_ids)
             except InvalidIdError as exc:
                 template = Template(EC2_INVALID_INSTANCE_ID)
                 return template.render(instance_id=exc.id), dict(status=400)
         else:
-            reservations = ec2_backend.all_reservations(make_copy=True)
+            reservations = self.ec2_backend.all_reservations(make_copy=True)
 
         filter_dict = filters_from_querystring(self.querystring)
         reservations = filter_reservations(reservations, filter_dict)
@@ -29,31 +28,31 @@ class InstanceResponse(BaseResponse):
         min_count = int(self.querystring.get('MinCount', ['1'])[0])
         image_id = self.querystring.get('ImageId')[0]
         user_data = self.querystring.get('UserData')
-        new_reservation = ec2_backend.add_instances(image_id, min_count, user_data)
+        new_reservation = self.ec2_backend.add_instances(image_id, min_count, user_data)
         template = Template(EC2_RUN_INSTANCES)
         return template.render(reservation=new_reservation)
 
     def terminate_instances(self):
         instance_ids = instance_ids_from_querystring(self.querystring)
-        instances = ec2_backend.terminate_instances(instance_ids)
+        instances = self.ec2_backend.terminate_instances(instance_ids)
         template = Template(EC2_TERMINATE_INSTANCES)
         return template.render(instances=instances)
 
     def reboot_instances(self):
         instance_ids = instance_ids_from_querystring(self.querystring)
-        instances = ec2_backend.reboot_instances(instance_ids)
+        instances = self.ec2_backend.reboot_instances(instance_ids)
         template = Template(EC2_REBOOT_INSTANCES)
         return template.render(instances=instances)
 
     def stop_instances(self):
         instance_ids = instance_ids_from_querystring(self.querystring)
-        instances = ec2_backend.stop_instances(instance_ids)
+        instances = self.ec2_backend.stop_instances(instance_ids)
         template = Template(EC2_STOP_INSTANCES)
         return template.render(instances=instances)
 
     def start_instances(self):
         instance_ids = instance_ids_from_querystring(self.querystring)
-        instances = ec2_backend.start_instances(instance_ids)
+        instances = self.ec2_backend.start_instances(instance_ids)
         template = Template(EC2_START_INSTANCES)
         return template.render(instances=instances)
 
@@ -63,7 +62,7 @@ class InstanceResponse(BaseResponse):
         key = camelcase_to_underscores(attribute)
         instance_ids = instance_ids_from_querystring(self.querystring)
         instance_id = instance_ids[0]
-        instance, value = ec2_backend.describe_instance_attribute(instance_id, key)
+        instance, value = self.ec2_backend.describe_instance_attribute(instance_id, key)
         template = Template(EC2_DESCRIBE_INSTANCE_ATTRIBUTE)
         return template.render(instance=instance, attribute=attribute, value=value)
 
@@ -80,7 +79,7 @@ class InstanceResponse(BaseResponse):
         normalized_attribute = camelcase_to_underscores(attribute_key.split(".")[0])
         instance_ids = instance_ids_from_querystring(self.querystring)
         instance_id = instance_ids[0]
-        ec2_backend.modify_instance_attribute(instance_id, normalized_attribute, value)
+        self.ec2_backend.modify_instance_attribute(instance_id, normalized_attribute, value)
         return EC2_MODIFY_INSTANCE_ATTRIBUTE
 
 

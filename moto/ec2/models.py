@@ -2,6 +2,7 @@ import copy
 import itertools
 from collections import defaultdict
 
+import boto
 from boto.ec2.instance import Instance as BotoInstance, Reservation
 
 from moto.core import BaseBackend
@@ -679,4 +680,8 @@ class EC2Backend(BaseBackend, InstanceBackend, TagBackend, AmiBackend,
     pass
 
 
-ec2_backend = EC2Backend()
+ec2_backends = {}
+for region_name in boto.regioninfo.load_regions()['ec2'].keys():
+    ec2_backends[region_name] = EC2Backend()
+
+ec2_backend = ec2_backends['us-east-1']
